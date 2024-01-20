@@ -1,6 +1,5 @@
 #include <QTRSensors.h>
 
-
 const int motorLeftForwardPin = 7;   // Pinul pentru mers înainte la motorul stâng
 const int motorLeftReversePin = 6;   // Pinul pentru mers înapoi la motorul stâng
 const int motorRightForwardPin = 5;  // Pinul pentru mers înainte la motorul drept
@@ -8,20 +7,19 @@ const int motorRightReversePin = 4;  // Pinul pentru mers înapoi la motorul dre
 const int motorLeftSpeedPin = 11;   // Pinul pentru controlul vitezei motorului stang
 const int motorRightSpeedPin = 10;  // Pinul pentru controlul vitezei motorului drept
 
-int motorLeftSpeed = 0;
-int motorRightSpeed = 0;
 // increase kp’s value and see what happens
 float kp = 1;
 float ki = 0;
 float kd = 0;
 int p = 1;
-int i = 0;
 int d = 0;
 int error = 0;
 int lastError = 0;
+
 const int maxSpeed = 255;
 const int minSpeed = -255;
 const int baseSpeed = 255;
+
 QTRSensors qtr;
 const int sensorCount = 6;
 int sensorValues[sensorCount];
@@ -49,12 +47,7 @@ void setup() {
 }
 
 void loop() {
-  // inefficient code, written in loop. You must create separate functions
-  int error = map(qtr.readLineBlack(sensorValues), 0, 5000, -50, 50);
-  p = error;
-  i = i + error;
-  d = error - lastError;
-  int correctionSpeed = kp * p + ki * i + kd * d;
+  int correctionSpeed = getPID();
   int motorLeftSpeed = baseSpeed;
   int motorRightSpeed = baseSpeed;
   // a bit counter intuitive because of the signs
@@ -85,8 +78,12 @@ void loop() {
 }
 
 // calculate PID value based on error, kp, kd, ki, p, i and d.
-void pidControl(float kp, float ki, float kd) {
-  // TODO
+float getPID() {
+  error = map(qtr.readLineBlack(sensorValues), 0, 5000, -50, 50);
+  p = error;
+  d = error - lastError;
+  lastError = error;
+  return kp * p + kd * d;
 }
 
 // each arguments takes values between -255 and 255. The negative values represent the motor speedin reverse.
@@ -123,8 +120,26 @@ void setMotorSpeed(int motorLeftSpeed, int motorRightSpeed) {
   analogWrite(motorRightSpeedPin, motorRightSpeed);
 }
 
+void swap(int &a, int &b) {
+  int c = a;
+  a = b;
+  b = c;
+}
+
 void calibrateSensor() {
-  while (millis() < 10000) {
+  int numberTurns = 10;
+  long int lastTurn = millis();
+  const int turnTime = 1000;
+  int motorLeftSpeed = 30;
+  int motorRightSpeed = -30;
+  setMotorSpeed(motorLeftSpeed, motorRightSpeed);
+  while (numberTurns) {
     qtr.calibrate();
+    if (millis() - lastTurn > turnTime) {
+      swap(motorLeftSpeed, motorRightSpeed);
+      setMotorSpeed(motorLeftSpeed, motorRightSpeed);
+      numberTurns--;
+      lastTurn = millis();
+    }
   }
 }
