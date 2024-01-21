@@ -17,7 +17,7 @@ int lastError = 0;
 
 const int maxSpeed = 255;
 const int minSpeed = -255;
-const int baseSpeed = 220;
+const int baseSpeed = 215;
 
 QTRSensors qtr;
 const int sensorCount = 6;
@@ -65,19 +65,14 @@ void loop() {
   // make sure it doesn't go past limits. You can use -255 instead of 0 if calibrated programmedproperly.
   // making sure we don't go out of bounds
   // maybe the lower bound should be negative, instead of 0? This of what happens when making asteep turn
-  motorLeftSpeed = constrain(motorLeftSpeed, -100, maxSpeed);
-  motorRightSpeed = constrain(motorRightSpeed, -100, maxSpeed);
+  motorLeftSpeed = constrain(motorLeftSpeed, -80, maxSpeed);
+  motorRightSpeed = constrain(motorRightSpeed, -80, maxSpeed);
   setMotorSpeed(motorLeftSpeed, motorRightSpeed);
 }
 
 // calculate PID value based on error, kp, kd, ki, p, i and d.
 float getPID() {
   error = map(qtr.readLineBlack(sensorValues), 0, 5000, -50, 50);
-  for (int i = 0; i < 6; i++) {
-    Serial.print(sensorValues[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
   p = error;
   d = error - lastError;
   lastError = error;
