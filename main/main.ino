@@ -4,21 +4,20 @@ const int motorLeftForwardPin = 7;   // Pinul pentru mers înainte la motorul st
 const int motorLeftReversePin = 6;   // Pinul pentru mers înapoi la motorul stâng
 const int motorRightForwardPin = 5;  // Pinul pentru mers înainte la motorul drept
 const int motorRightReversePin = 4;  // Pinul pentru mers înapoi la motorul drept
-const int motorLeftSpeedPin = 11;   // Pinul pentru controlul vitezei motorului stang
-const int motorRightSpeedPin = 10;  // Pinul pentru controlul vitezei motorului drept
+const int motorLeftSpeedPin = 11;    // Pinul pentru controlul vitezei motorului stang
+const int motorRightSpeedPin = 10;   // Pinul pentru controlul vitezei motorului drept
 
 // increase kp’s value and see what happens
-float kp = 1;
-float ki = 0;
-float kd = 0;
-int p = 1;
+float kp = 5.5;
+float kd = 3.3;
+int p = 0;
 int d = 0;
-int error = 0;
+int error = 0; 
 int lastError = 0;
 
 const int maxSpeed = 255;
 const int minSpeed = -255;
-const int baseSpeed = 255;
+const int baseSpeed = 220;
 
 QTRSensors qtr;
 const int sensorCount = 6;
@@ -56,30 +55,29 @@ void loop() {
   // it's just the way the values of the sensors and/or motors lined up
   if (error < 0) {
     motorLeftSpeed += correctionSpeed;
+    //motorRightSpeed -= correctionSpeed / 10;
+    //Serial.println(correctionSpeed);
   } else if (error > 0) {
     motorRightSpeed -= correctionSpeed;
+    //motorLeftSpeed += correctionSpeed / 10; 
+    //Serial.println(correctionSpeed);
   } 
   // make sure it doesn't go past limits. You can use -255 instead of 0 if calibrated programmedproperly.
   // making sure we don't go out of bounds
   // maybe the lower bound should be negative, instead of 0? This of what happens when making asteep turn
-  motorLeftSpeed = constrain(motorLeftSpeed, 0, maxSpeed);
-  motorRightSpeed = constrain(motorRightSpeed, 0, maxSpeed);
+  motorLeftSpeed = constrain(motorLeftSpeed, -100, maxSpeed);
+  motorRightSpeed = constrain(motorRightSpeed, -100, maxSpeed);
   setMotorSpeed(motorLeftSpeed, motorRightSpeed);
-  // DEBUGGING
-  // Serial.print("Error: ");
-  // Serial.println(error);
-  // Serial.print("M1 speed: ");
-  // Serial.println(m1Speed);
-  //
-  // Serial.print("M2 speed: ");
-  // Serial.println(m2Speed);
-  //
-  // delay(250);
 }
 
 // calculate PID value based on error, kp, kd, ki, p, i and d.
 float getPID() {
   error = map(qtr.readLineBlack(sensorValues), 0, 5000, -50, 50);
+  for (int i = 0; i < 6; i++) {
+    Serial.print(sensorValues[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
   p = error;
   d = error - lastError;
   lastError = error;
@@ -87,7 +85,7 @@ float getPID() {
 }
 
 // each arguments takes values between -255 and 255. The negative values represent the motor speedin reverse.
-void setMotorSpeed(int motorLeftSpeed, int motorRightSpeed) {
+void setMotorSpeed(int motorRightSpeed, int motorLeftSpeed) {
   if (motorLeftSpeed == 0) {
     digitalWrite(motorLeftForwardPin, LOW);
     digitalWrite(motorLeftReversePin, LOW);
@@ -127,17 +125,20 @@ void swap(int &a, int &b) {
 }
 
 void calibrateSensor() {
-  int numberTurns = 10;
-  long int lastTurn = millis();
+  int numberTurns = 5;
+  long long int lastTurn = millis();
   const int turnTime = 1000;
-  int motorLeftSpeed = 30;
-  int motorRightSpeed = -30;
-  setMotorSpeed(motorLeftSpeed, motorRightSpeed);
+  int motorRightSpeed = 100;
+  int motorLeftSpeed = 100;
   while (numberTurns) {
+    //qtr.readLineBlack(sensorValues);
+    //if (sensorValues[0] < 20) 
     qtr.calibrate();
     if (millis() - lastTurn > turnTime) {
-      swap(motorLeftSpeed, motorRightSpeed);
-      setMotorSpeed(motorLeftSpeed, motorRightSpeed);
+      //swap(motorLeftSpeed, motorRightSpeed);
+      motorRightSpeed = -motorRightSpeed;
+      motorLeftSpeed = -motorLeftSpeed;
+      //setMotorSpeed(motorLeftSpeed, motorRightSpeed);
       numberTurns--;
       lastTurn = millis();
     }
