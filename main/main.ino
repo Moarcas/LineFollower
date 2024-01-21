@@ -12,12 +12,12 @@ float kp = 5.5;
 float kd = 3.3;
 int p = 0;
 int d = 0;
-int error = 0; 
+int error = 0;
 int lastError = 0;
 
 const int maxSpeed = 255;
 const int minSpeed = -255;
-const int baseSpeed = 215;
+const int baseSpeed = 218;
 
 QTRSensors qtr;
 const int sensorCount = 6;
@@ -36,7 +36,7 @@ void setup() {
   qtr.setTypeAnalog();
   qtr.setSensorPins((const uint8_t[]){ A0, A1, A2, A3, A4, A5 }, sensorCount);
   delay(500);
-  
+
   // calibrate sensor
   digitalWrite(LED_BUILTIN, HIGH);  // turn on Arduino's LED to indicate we are in calibration mode
   calibrateSensor();
@@ -59,14 +59,14 @@ void loop() {
     //Serial.println(correctionSpeed);
   } else if (error > 0) {
     motorRightSpeed -= correctionSpeed;
-    //motorLeftSpeed += correctionSpeed / 10; 
+    //motorLeftSpeed += correctionSpeed / 10;
     //Serial.println(correctionSpeed);
-  } 
+  }
   // make sure it doesn't go past limits. You can use -255 instead of 0 if calibrated programmedproperly.
   // making sure we don't go out of bounds
   // maybe the lower bound should be negative, instead of 0? This of what happens when making asteep turn
-  motorLeftSpeed = constrain(motorLeftSpeed, -80, maxSpeed);
-  motorRightSpeed = constrain(motorRightSpeed, -80, maxSpeed);
+  motorLeftSpeed = constrain(motorLeftSpeed, -78, maxSpeed);
+  motorRightSpeed = constrain(motorRightSpeed, -78, maxSpeed);
   setMotorSpeed(motorLeftSpeed, motorRightSpeed);
 }
 
@@ -95,11 +95,11 @@ void setMotorSpeed(int motorRightSpeed, int motorLeftSpeed) {
       motorLeftSpeed = -motorLeftSpeed;
     }
   }
-   if (motorRightSpeed == 0) {
+  if (motorRightSpeed == 0) {
     digitalWrite(motorRightForwardPin, LOW);
-    digitalWrite(motorRightReversePin, LOW); 
+    digitalWrite(motorRightReversePin, LOW);
   } else {
-    if (motorRightSpeed > 0) { 
+    if (motorRightSpeed > 0) {
       digitalWrite(motorRightForwardPin, HIGH);
       digitalWrite(motorRightReversePin, LOW);
     }
@@ -113,29 +113,63 @@ void setMotorSpeed(int motorRightSpeed, int motorLeftSpeed) {
   analogWrite(motorRightSpeedPin, motorRightSpeed);
 }
 
-void swap(int &a, int &b) {
-  int c = a;
-  a = b;
-  b = c;
-}
-
 void calibrateSensor() {
-  int numberTurns = 5;
-  long long int lastTurn = millis();
-  const int turnTime = 1000;
-  int motorRightSpeed = 100;
-  int motorLeftSpeed = 100;
+  // int numberTurns = 5;
+  // // o - left 1 - right
+  // int direction = 0;
+  // long long int lastTurn = millis();
+  // const int turnTime = 500;
+  // int motorRightSpeed = 170;
+  // int motorLeftSpeed = -150;
+  // setMotorSpeed(motorRightSpeed, motorLeftSpeed);
+  // while (numberTurns) {
+  //   qtr.calibrate();
+  //   if (millis() - lastTurn > turnTime) {
+  //       motorRightSpeed = (-1)*2*motorRightSpeed;
+  //       motorLeftSpeed = (-1)*2*motorLeftSpeed;
+  //       setMotorSpeed(motorRightSpeed, motorLeftSpeed);
+  //     numberTurns--;
+  //     lastTurn = millis();
+  //   }
+  // }
+  // motorRightSpeed = -motorRightSpeed;
+  // motorLeftSpeed = -motorLeftSpeed;
+  // setMotorSpeed(motorRightSpeed, motorLeftSpeed);
+  // setMotorSpeed(baseSpeed, baseSpeed);
+
+  int numberTurns = 10;
+  // o - left 1 - right
+  int direction = 0;
+  const int turnTime = 500;
+  int motorRightSpeed = 170;
+  int motorLeftSpeed = -150;
+  setMotorSpeed(motorRightSpeed, motorLeftSpeed);
   while (numberTurns) {
-    //qtr.readLineBlack(sensorValues);
-    //if (sensorValues[0] < 20) 
     qtr.calibrate();
-    if (millis() - lastTurn > turnTime) {
-      //swap(motorLeftSpeed, motorRightSpeed);
+    error = map(qtr.readLineBlack(sensorValues), 0, 5000, -50, 50);
+    if (error > 45 && direction == 1) {
       motorRightSpeed = -motorRightSpeed;
       motorLeftSpeed = -motorLeftSpeed;
-      //setMotorSpeed(motorLeftSpeed, motorRightSpeed);
+
       numberTurns--;
-      lastTurn = millis();
+      direction = 0;
+
+      setMotorSpeed(motorRightSpeed, motorLeftSpeed);
+      
     }
+
+    if (error < -45 && direction == 0) {
+      motorRightSpeed = -motorRightSpeed;
+      motorLeftSpeed = -motorLeftSpeed;
+
+      numberTurns--;
+      direction = 1;
+
+      setMotorSpeed(motorRightSpeed, motorLeftSpeed);
+   
+    }
+
   }
+ 
+  setMotorSpeed(baseSpeed, baseSpeed);
 }
